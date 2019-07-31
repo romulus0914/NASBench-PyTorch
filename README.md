@@ -6,7 +6,7 @@ A PyTroch implementation of *training* of NASBench dataset: [NAS-Bench-101: Towa
 NASBench dataset contains 423,624 unique neural networks exhaustively generated and evaluated from a fixed graph-based search space.
 
 # Architecture
-![archtecture](./assets/architecure.png)
+![archtecture](./assets/architecture.png)
 
 # Results
 ![param-time-acc](./assets/param_time_acc.png)
