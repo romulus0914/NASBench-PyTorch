@@ -1,4 +1,4 @@
-# NASBench PyTorch
+# NASBench-PyTorch
 A PyTorch implementation of *training* of NASBench
 
 # Overview
