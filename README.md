@@ -14,4 +14,4 @@ NASBench dataset contains 423,624 unique neural networks exhaustively generated 
 # Disclaimer
 Modified from [NASBench: A Neural Architecture Search Dataset and Benchmark](https://github.com/google-research/nasbench).
 *graph_util.py* and *model_spec.py* are directly copied from the original repo.
-**Please noted that this repo is only used to train one possible architecture in the search space, not to generated all possible graphs and trained**
+**Please noted that this repo is only used to train one possible architecture in the search space, not to generate all possible graphs and trained**
