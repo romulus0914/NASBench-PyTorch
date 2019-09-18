@@ -9,9 +9,9 @@ from __future__ import division
 from __future__ import print_function
 
 import copy
-
-from nasbench.lib import graph_util
 import numpy as np
+
+import graph_util
 
 # Graphviz is optional and only required for visualization.
 try:
