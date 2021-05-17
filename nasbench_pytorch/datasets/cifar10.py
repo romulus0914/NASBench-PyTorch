@@ -9,7 +9,7 @@ import torchvision
 import torchvision.transforms as transforms
 
 
-def PrepareDataset(batch_size, test_batch_size=100):
+def PrepareDataset(batch_size, test_batch_size=100, root='./data/'):
     print('--- Preparing CIFAR10 Data ---')
 
     train_transform = transforms.Compose([
@@ -24,10 +24,10 @@ def PrepareDataset(batch_size, test_batch_size=100):
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])
 
-    trainset = torchvision.datasets.CIFAR10(root='../data', train=True, download=True, transform=train_transform)
+    trainset = torchvision.datasets.CIFAR10(root=root, train=True, download=True, transform=train_transform)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True)
 
-    testset = torchvision.datasets.CIFAR10(root='../data', train=False, download=True, transform=test_transform)
+    testset = torchvision.datasets.CIFAR10(root=root, train=False, download=True, transform=test_transform)
     testloader = torch.utils.data.DataLoader(testset, batch_size=test_batch_size, shuffle=False)
 
     print('--- CIFAR10 Data Prepared ---')
