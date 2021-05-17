@@ -23,32 +23,37 @@ import torch.nn as nn
 
 
 class Network(nn.Module):
-    def __init__(self, spec, args):
+    def __init__(self, spec, num_labels,
+                 in_channels=3, stem_out_channels=128, num_stacks=3, num_modules_per_stack=3):
         super(Network, self).__init__()
+
+        self.cell_indices = set()
 
         self.layers = nn.ModuleList([])
 
-        in_channels = 3
-        out_channels = args.stem_out_channels
-
         # initial stem convolution
+        out_channels = stem_out_channels
         stem_conv = ConvBnRelu(in_channels, out_channels, 3, 1, 1)
         self.layers.append(stem_conv)
 
+        # stacked cells
         in_channels = out_channels
-        for stack_num in range(args.num_stacks):
+        for stack_num in range(num_stacks):
+            # downsample after every but the last cell
             if stack_num > 0:
                 downsample = nn.MaxPool2d(kernel_size=2, stride=2)
                 self.layers.append(downsample)
 
                 out_channels *= 2
 
-            for module_num in range(args.num_modules_per_stack):
+            for module_num in range(num_modules_per_stack):
                 cell = Cell(spec, in_channels, out_channels)
                 self.layers.append(cell)
                 in_channels = out_channels
 
-        self.classifier = nn.Linear(out_channels, args.num_labels)
+                self.cell_indices.add(len(self.layers) - 1)
+
+        self.classifier = nn.Linear(out_channels, num_labels)
 
         self._initialize_weights()
 
@@ -59,6 +64,22 @@ class Network(nn.Module):
         out = self.classifier(out)
 
         return out
+
+    def get_cell_outputs(self, x):
+        outputs = []
+
+        for i, layer in enumerate(self.layers):
+            x = layer(x)
+
+            if i in self.cell_indices:
+                outputs.append(x)
+
+        # last layer
+        out = torch.mean(x, (2, 3))
+        out = self.classifier(out)
+        outputs.append(out)
+
+        return outputs
 
     def _initialize_weights(self):
         for m in self.modules():
@@ -71,7 +92,6 @@ class Network(nn.Module):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
             elif isinstance(m, nn.Linear):
-                n = m.weight.size(1)
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
 
