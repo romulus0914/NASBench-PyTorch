@@ -10,6 +10,8 @@ data/*
 
 **/__pycache__/**
 
+*.egg-info/*
+
 # User-specific stuff
 .idea/**/workspace.xml
 .idea/**/tasks.xml
