@@ -1,18 +1,15 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as F
-import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
 
 import torchvision
 import torchvision.transforms as transforms
 
-from model import Network
-from model_spec import ModelSpec
+from nasbench_pytorch.model import Network
+from nasbench_pytorch.model import ModelSpec
 
-import sys, os
-import numpy as np
+import os
 import argparse
 
 matrix = [[0, 1, 1, 1, 0, 1, 0],
@@ -31,7 +28,7 @@ def PrepareDataset(batch_size):
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),  # source https://github.com/google-research/nasbench/blob/master/nasbench/lib/cifar.py
     ])
 
     test_transform = transforms.Compose([

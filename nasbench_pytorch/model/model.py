@@ -16,11 +16,11 @@ from __future__ import print_function
 import numpy as np
 import math
 
-from base_ops import *
+from nasbench_pytorch.model.base_ops import *
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+
 
 class Network(nn.Module):
     def __init__(self, spec, args):
