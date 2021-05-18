@@ -3,8 +3,17 @@ from torch import nn
 from torch.autograd import Variable
 
 
-def train(net, train_loader, loss, optimizer, scheduler, grad_clip, num_epochs=10,
+def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_clip=5, num_epochs=10,
           num_validation=None, validation_loader=None):
+
+    if loss is None:
+        loss = nn.CrossEntropyLoss()
+
+    if optimizer is None:
+        optimizer = torch.optim.SGD(net.parameters(), lr=0.025, momentum=0.9, weight_decay=1e-4)
+
+    if scheduler is None:
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, num_epochs)
 
     n_batches = len(train_loader)
 
