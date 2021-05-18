@@ -26,7 +26,6 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
         correct = 0
         total = 0
 
-        batch_idx = 0
         for batch_idx, (inputs, targets) in enumerate(train_loader):
             inputs, targets = Variable(inputs.cuda()), Variable(targets.cuda())
 
@@ -53,8 +52,11 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
             test(net, validation_loader, loss, num_tests=num_validation)
 
 
-def test(net, test_loader, criterion, num_tests=None):
+def test(net, test_loader, loss=None, num_tests=None):
     net.eval()
+
+    if loss is None:
+        loss = nn.CrossEntropyLoss()
 
     test_loss = 0
     correct = 0
@@ -67,7 +69,7 @@ def test(net, test_loader, criterion, num_tests=None):
 
             outputs = net(inputs)
 
-            loss = criterion(outputs, targets)
+            loss = loss(outputs, targets)
             test_loss += loss.item()
             _, predict = torch.max(outputs.data, 1)
             correct += predict.eq(targets.data).cpu().sum().item()
