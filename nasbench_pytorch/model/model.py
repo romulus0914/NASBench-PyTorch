@@ -17,6 +17,7 @@ import numpy as np
 import math
 
 from nasbench_pytorch.model.base_ops import *
+from nasbench_pytorch.model.model_spec import ModelSpec
 
 import torch
 import torch.nn as nn
@@ -27,6 +28,10 @@ class Network(nn.Module):
                  in_channels=3, stem_out_channels=128, num_stacks=3, num_modules_per_stack=3):
         super(Network, self).__init__()
 
+        if isinstance(spec, tuple):
+            spec = ModelSpec(spec[0], spec[1])
+
+        self.spec = spec
         self.cell_indices = set()
 
         self.layers = nn.ModuleList([])
