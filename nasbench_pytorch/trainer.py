@@ -11,22 +11,19 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         net = net.to(device)
 
+    # TODO use exactly same defaults as in paper
     # defaults
     if loss is None:
         loss = nn.CrossEntropyLoss()
-
     if optimizer is None:
         optimizer = torch.optim.SGD(net.parameters(), lr=0.025, momentum=0.9, weight_decay=1e-4)
-
     if scheduler is None:
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, num_epochs)
 
     n_batches = len(train_loader)
-
+    last_loss, acc, val_loss, val_acc = 0, 0, 0, 0
     for epoch in range(num_epochs):
         net.train()
-
-        scheduler.step()
 
         train_loss = 0
         correct = 0
@@ -46,24 +43,29 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
             nn.utils.clip_grad_norm_(net.parameters(), grad_clip)
             optimizer.step()
 
-            train_loss += curr_loss.item()
+            train_loss += curr_loss.detach()
             _, predict = torch.max(outputs.data, 1)
             total += targets.size(0)
-            correct += predict.eq(targets.data).sum().item()
+            correct += predict.eq(targets.data).sum().detach()
 
-            # TODO print only sometimes, avg train loss only over some 2k batches or so
-            print(f'Epoch={epoch}/{num_epochs} Batch={batch_idx + 1}/{n_batches} | '
-                  f'Loss={train_loss/(batch_idx+1):.3f}, '
-                  f'Acc={correct/total:.3f}({correct}/{total})')
+            # TODO avg train loss only over some 2k batches or so
+            if (batch_idx % 100) == 0:
+                print(f'Epoch={epoch}/{num_epochs} Batch={batch_idx + 1}/{n_batches} | '
+                      f'Loss={train_loss/(batch_idx+1):.3f}, '
+                      f'Acc={correct/total:.3f}({correct}/{total})')
 
         last_loss = train_loss / (batch_idx + 1) if batch_idx > 0 else np.inf
         acc = correct / total
 
         if validation_loader is not None:
             val_loss, val_acc = test(net, validation_loader, loss, num_tests=num_validation, device=device)
-            return last_loss, acc, val_loss, val_acc
 
-        return last_loss, acc
+        scheduler.step()
+
+    if validation_loader is not None:
+        return last_loss, acc, val_loss, val_acc
+
+    return last_loss, acc
 
 
 def test(net, test_loader, loss=None, num_tests=None, device=None):
@@ -88,9 +90,9 @@ def test(net, test_loader, loss=None, num_tests=None, device=None):
             outputs = net(inputs)
 
             curr_loss = loss(outputs, targets)
-            test_loss += curr_loss.item()
+            test_loss += curr_loss.detach()
             _, predict = torch.max(outputs.data, 1)
-            correct += predict.eq(targets.data).sum().item()
+            correct += predict.eq(targets.data).sum().detach()
 
             if num_tests is None:
                 n_tests += len(targets)
