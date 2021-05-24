@@ -41,12 +41,12 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
 
             # back-propagation
             optimizer.zero_grad()
-            loss = loss(outputs, targets)
+            curr_loss = loss(outputs, targets)
             loss.backward()
             nn.utils.clip_grad_norm_(net.parameters(), grad_clip)
             optimizer.step()
 
-            train_loss += loss.item()
+            train_loss += curr_loss.item()
             _, predict = torch.max(outputs.data, 1)
             total += targets.size(0)
             correct += predict.eq(targets.data).sum().item()
@@ -87,8 +87,8 @@ def test(net, test_loader, loss=None, num_tests=None, device=None):
 
             outputs = net(inputs)
 
-            loss = loss(outputs, targets)
-            test_loss += loss.item()
+            curr_loss = loss(outputs, targets)
+            test_loss += curr_loss.item()
             _, predict = torch.max(outputs.data, 1)
             correct += predict.eq(targets.data).sum().item()
 
