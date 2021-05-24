@@ -53,8 +53,8 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
 
             # TODO print only sometimes, avg train loss only over some 2k batches or so
             print(f'Epoch={epoch}/{num_epochs} Batch={batch_idx + 1}/{n_batches} | '
-                  f'Loss={train_loss/(batch_idx+1): %.3f}, '
-                  f'Acc={correct/total: %.3f}({correct}/{total})')
+                  f'Loss={train_loss/(batch_idx+1):.3f}, '
+                  f'Acc={correct/total:.3f}({correct}/{total})')
 
         last_loss = train_loss / (batch_idx + 1) if batch_idx > 0 else np.inf
         acc = correct / total
@@ -98,8 +98,8 @@ def test(net, test_loader, loss=None, num_tests=None, device=None):
         if num_tests is None:
             num_tests = n_tests
 
-        print('Testing: Loss=%.3f, Acc=%.3f(%d/%d)' %
-              (test_loss / len(test_loader), correct / num_tests, correct, num_tests))
+        print(f'Testing: Loss={(test_loss / len(test_loader)):.3f}, Acc={(correct / num_tests):.3f}'
+              f'({correct}/{num_tests})')
 
     last_loss = test_loss / len(test_loader) if len(test_loader) > 0 else np.inf
     acc = correct / num_tests
