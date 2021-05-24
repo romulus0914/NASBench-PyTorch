@@ -42,7 +42,7 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
             # back-propagation
             optimizer.zero_grad()
             curr_loss = loss(outputs, targets)
-            loss.backward()
+            curr_loss.backward()
             nn.utils.clip_grad_norm_(net.parameters(), grad_clip)
             optimizer.step()
 
