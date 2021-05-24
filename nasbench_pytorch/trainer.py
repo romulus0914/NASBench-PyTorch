@@ -1,11 +1,17 @@
+import numpy as np
+
 import torch
 from torch import nn
 from torch.autograd import Variable
 
 
 def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_clip=5, num_epochs=10,
-          num_validation=None, validation_loader=None):
+          num_validation=None, validation_loader=None, device=None):
+    if device is None:
+        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        net = net.to(device)
 
+    # defaults
     if loss is None:
         loss = nn.CrossEntropyLoss()
 
@@ -28,7 +34,7 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
 
         batch_idx = 0
         for batch_idx, (inputs, targets) in enumerate(train_loader):
-            inputs, targets = Variable(inputs.cuda()), Variable(targets.cuda())
+            inputs, targets = inputs.to(device), targets.to(device)
 
             # forward
             outputs = net(inputs)
@@ -43,8 +49,9 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
             train_loss += loss.item()
             _, predict = torch.max(outputs.data, 1)
             total += targets.size(0)
-            correct += predict.eq(targets.data).cpu().sum().item()
+            correct += predict.eq(targets.data).sum().item()
 
+            # TODO print only sometimes, avg train loss only over some 2k batches or so
             print(f'Epoch={epoch}/{num_epochs} Batch={batch_idx + 1}/{n_batches} | '
                   f'Loss={train_loss/(batch_idx+1): %.3f}, '
                   f'Acc={correct/total: %.3f}({correct}/{total})')
@@ -53,13 +60,17 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
         acc = correct / total
 
         if validation_loader is not None:
-            val_loss, val_acc = test(net, validation_loader, loss, num_tests=num_validation)
+            val_loss, val_acc = test(net, validation_loader, loss, num_tests=num_validation, device=device)
             return last_loss, acc, val_loss, val_acc
 
         return last_loss, acc
 
 
-def test(net, test_loader, loss=None, num_tests=None):
+def test(net, test_loader, loss=None, num_tests=None, device=None):
+    if device is None:
+        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        net = net.to(device)
+
     net.eval()
 
     if loss is None:
@@ -72,14 +83,14 @@ def test(net, test_loader, loss=None, num_tests=None):
 
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(test_loader):
-            inputs, targets = Variable(inputs.cuda()), Variable(targets.cuda())
+            inputs, targets = inputs.to(device), targets.to(device)
 
             outputs = net(inputs)
 
             loss = loss(outputs, targets)
             test_loss += loss.item()
             _, predict = torch.max(outputs.data, 1)
-            correct += predict.eq(targets.data).cpu().sum().item()
+            correct += predict.eq(targets.data).sum().item()
 
             if num_tests is None:
                 n_tests += len(targets)
