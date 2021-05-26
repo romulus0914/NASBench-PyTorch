@@ -1,9 +1,0 @@
-<<<<<<< HEAD
-from model import Network
-from model_spec import ModelSpec
-=======
-from .model import Network
-from .model_spec import ModelSpec
->>>>>>> 714500af522b57adf2ce09db4ca5cf1c2002c325
-
-__all__ = [Network, ModelSpec]
