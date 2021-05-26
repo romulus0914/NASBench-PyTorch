@@ -14,14 +14,14 @@ from torch.utils.data.sampler import SubsetRandomSampler
 def train_valid_split(dataset_size, valid_size, random_state=None):
     random = np.random.RandomState(seed=random_state) if random_state is not None else np.random
     valid_inds = random.choice(dataset_size, size=valid_size, replace=False)
-    valid_inds.sort()
 
     train_inds = np.delete(np.arange(dataset_size), valid_inds)
 
     return SubsetRandomSampler(train_inds), SubsetRandomSampler(valid_inds)
 
 
-def prepare_dataset(batch_size, test_batch_size=100, root='./data/', validation_size=0, random_state=None):
+def prepare_dataset(batch_size, test_batch_size=100, root='./data/', validation_size=0, random_state=None,
+                    num_workers=0):
     print('--- Preparing CIFAR10 Data ---')
 
     train_transform = transforms.Compose([
@@ -42,16 +42,17 @@ def prepare_dataset(batch_size, test_batch_size=100, root='./data/', validation_
     # split off random validation set
     if validation_size > 0:
         train_sampler, valid_sampler = train_valid_split(train_size, validation_size, random_state=random_state)
-        train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True,
-                                                   sampler=train_sampler)
+        train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=False,
+                                                   sampler=train_sampler, num_workers=num_workers)
         valid_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=False,
-                                                   sampler=valid_sampler)
+                                                   sampler=valid_sampler, num_workers=num_workers)
     else:
         train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True)
         valid_loader = None
 
     test_set = torchvision.datasets.CIFAR10(root=root, train=False, download=True, transform=test_transform)
-    test_loader = torch.utils.data.DataLoader(test_set, batch_size=test_batch_size, shuffle=False)
+    test_loader = torch.utils.data.DataLoader(test_set, batch_size=test_batch_size, shuffle=False,
+                                              num_workers=num_workers)
     test_size = len(test_set)
 
     print('--- CIFAR10 Data Prepared ---')

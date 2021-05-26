@@ -70,21 +70,25 @@ class Network(nn.Module):
 
         return out
 
-    def get_cell_outputs(self, x):
+    def get_cell_outputs(self, x, return_inputs=False):
+        inputs = []
         outputs = []
 
         for i, layer in enumerate(self.layers):
-            x = layer(x)
+            next_x = layer(x)
 
             if i in self.cell_indices:
-                outputs.append(x)
+                inputs.append(x)
+                outputs.append(next_x)
+            x = next_x
 
         # last layer
+        inputs.append(x)
         out = torch.mean(x, (2, 3))
         out = self.classifier(out)
         outputs.append(out)
 
-        return outputs
+        return (inputs, outputs) if return_inputs else outputs
 
     def _initialize_weights(self):
         for m in self.modules():
