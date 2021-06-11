@@ -22,7 +22,7 @@ def train_valid_split(dataset_size, valid_size, random_state=None):
 
 def prepare_dataset(batch_size, test_batch_size=100, root='./data/', validation_size=0, random_state=None,
                     num_workers=0):
-    print('--- Preparing CIFAR10 Data ---')
+    print('\n--- Preparing CIFAR10 Data ---')
 
     train_transform = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
@@ -55,7 +55,7 @@ def prepare_dataset(batch_size, test_batch_size=100, root='./data/', validation_
                                               num_workers=num_workers)
     test_size = len(test_set)
 
-    print('--- CIFAR10 Data Prepared ---')
+    print('--- CIFAR10 Data Prepared ---\n')
 
     if validation_size > 0:
         return train_loader, train_size - validation_size, valid_loader, validation_size, test_loader, test_size

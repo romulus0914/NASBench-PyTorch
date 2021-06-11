@@ -6,7 +6,7 @@ from torch.autograd import Variable
 
 
 def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_clip=5, num_epochs=10,
-          num_validation=None, validation_loader=None, device=None):
+          num_validation=None, validation_loader=None, device=None, print_frequency=200):
     if device is None:
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         net = net.to(device)
@@ -48,8 +48,7 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
             total += targets.size(0)
             correct += predict.eq(targets.data).sum().detach()
 
-            # TODO avg train loss only over some 2k batches or so
-            if (batch_idx % 100) == 0:
+            if (batch_idx % print_frequency) == 0:
                 print(f'Epoch={epoch}/{num_epochs} Batch={batch_idx + 1}/{n_batches} | '
                       f'Loss={train_loss/(batch_idx+1):.3f}, '
                       f'Acc={correct/total:.3f}({correct}/{total})')
@@ -60,6 +59,7 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
         if validation_loader is not None:
             val_loss, val_acc = test(net, validation_loader, loss, num_tests=num_validation, device=device)
 
+        print('--------------------')
         scheduler.step()
 
     if validation_loader is not None:
