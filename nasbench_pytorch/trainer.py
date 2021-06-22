@@ -11,12 +11,17 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         net = net.to(device)
 
-    # TODO use exactly same defaults as in paper
     # defaults
     if loss is None:
         loss = nn.CrossEntropyLoss()
-    if optimizer is None:
+
+    if optimizer is None or optimizer.lower() == 'sgd':
         optimizer = torch.optim.SGD(net.parameters(), lr=0.025, momentum=0.9, weight_decay=1e-4)
+    elif optimizer.lower() == 'rmsprop':
+        optimizer = torch.optim.RMSprop(net.parameters(), lr=0.2, momentum=0.9, weight_decay=1e-4)
+    elif optimizer.lower() == 'adam':
+        optimizer = torch.optim.Adam(net.parameters())
+
     if scheduler is None:
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, num_epochs)
 
