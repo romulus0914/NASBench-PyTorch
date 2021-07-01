@@ -82,9 +82,13 @@ class Network(nn.Module):
                 outputs.append(next_x)
             x = next_x
 
-        # last layer
+        # layer before global avg pooling
         inputs.append(x)
         out = torch.mean(x, (2, 3))
+        outputs.append(out)
+
+        # last layer
+        inputs.append(out)
         out = self.classifier(out)
         outputs.append(out)
 
