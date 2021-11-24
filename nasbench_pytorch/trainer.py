@@ -6,7 +6,8 @@ from torch.autograd import Variable
 
 
 def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_clip=5, num_epochs=10,
-          num_validation=None, validation_loader=None, device=None, print_frequency=200):
+          num_validation=None, validation_loader=None, device=None, print_frequency=200,
+          checkpoint_every_k=None, checkpoint_func=None):
     if device is None:
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         net = net.to(device)
@@ -28,6 +29,12 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
     n_batches = len(train_loader)
     last_loss, acc, val_loss, val_acc = 0, 0, 0, 0
     for epoch in range(num_epochs):
+        # checkpoint using a user defined function
+        if checkpoint_every_k is not None and (epoch + 1) % checkpoint_every_k == 0:
+            metric_dict = {'train_loss': last_loss, 'train_accuracy': acc,
+                           'val_loss': val_loss, 'val_accuracy': val_acc}
+            checkpoint_func(net, metric_dict)
+
         net.train()
 
         train_loss = 0
