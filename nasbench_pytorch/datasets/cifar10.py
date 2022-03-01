@@ -2,6 +2,7 @@
 Specific transforms and constants have been extracted from
   https://github.com/google-research/nasbench/blob/master/nasbench/lib/cifar.py
 """
+import random
 
 import numpy as np
 import torch
@@ -24,6 +25,16 @@ def prepare_dataset(batch_size, test_batch_size=100, root='./data/', validation_
                     no_valid_transform=False, num_workers=0):
     print('\n--- Preparing CIFAR10 Data ---')
 
+    if random_state is not None:
+        g = torch.Generator()
+        g.manual_seed(random_state)
+
+    def worker_init_fn(worker_id):
+        seed = random_state + worker_id
+        np.random.seed(seed)
+        random.seed(seed)
+        torch.manual_seed(seed)
+
     train_transform = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
@@ -45,16 +56,19 @@ def prepare_dataset(batch_size, test_batch_size=100, root='./data/', validation_
     if validation_size > 0:
         train_sampler, valid_sampler = train_valid_split(train_size, validation_size, random_state=random_state)
         train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=False,
-                                                   sampler=train_sampler, num_workers=num_workers)
+                                                   sampler=train_sampler, num_workers=num_workers,
+                                                   worker_init_fn=worker_init_fn)
         valid_loader = torch.utils.data.DataLoader(valid_set, batch_size=batch_size, shuffle=False,
-                                                   sampler=valid_sampler, num_workers=num_workers)
+                                                   sampler=valid_sampler, num_workers=num_workers,
+                                                   worker_init_fn=worker_init_fn)
     else:
-        train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True)
+        train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True,
+                                                   worker_init_fn=worker_init_fn)
         valid_loader = None
 
     test_set = torchvision.datasets.CIFAR10(root=root, train=False, download=True, transform=test_transform)
     test_loader = torch.utils.data.DataLoader(test_set, batch_size=test_batch_size, shuffle=False,
-                                              num_workers=num_workers)
+                                              num_workers=num_workers, worker_init_fn=worker_init_fn)
     test_size = len(test_set)
 
     print('--- CIFAR10 Data Prepared ---\n')
