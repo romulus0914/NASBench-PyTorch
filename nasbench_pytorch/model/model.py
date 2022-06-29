@@ -26,6 +26,18 @@ import torch.nn as nn
 class Network(nn.Module):
     def __init__(self, spec, num_labels,
                  in_channels=3, stem_out_channels=128, num_stacks=3, num_modules_per_stack=3):
+        """
+
+        Args:
+            spec: ModelSpec from nasbench, or a tuple (adjacency matrix, ops)
+            num_labels: Number of output labels.
+            in_channels: Number of input image channels.
+            stem_out_channels: Number of output stem channels. Other hidden channels are computed and depend on this
+                number.
+
+            num_stacks: Number of stacks, in every stacks the cells have the same number of channels.
+            num_modules_per_stack: Number of cells per stack.
+        """
         super(Network, self).__init__()
 
         if isinstance(spec, tuple):
@@ -69,30 +81,6 @@ class Network(nn.Module):
         out = self.classifier(out)
 
         return out
-
-    def get_cell_outputs(self, x, return_inputs=False):
-        inputs = []
-        outputs = []
-
-        for i, layer in enumerate(self.layers):
-            next_x = layer(x)
-
-            if i in self.cell_indices:
-                inputs.append(x)
-                outputs.append(next_x)
-            x = next_x
-
-        # layer before global avg pooling
-        inputs.append(x)
-        out = torch.mean(x, (2, 3))
-        outputs.append(out)
-
-        # last layer
-        inputs.append(out)
-        out = self.classifier(out)
-        outputs.append(out)
-
-        return (inputs, outputs) if return_inputs else outputs
 
     def _initialize_weights(self):
         for m in self.modules():

@@ -2,15 +2,34 @@ import numpy as np
 
 import torch
 from torch import nn
-from torch.autograd import Variable
 
 
 def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_clip=5, num_epochs=10,
           num_validation=None, validation_loader=None, device=None, print_frequency=200,
           checkpoint_every_k=None, checkpoint_func=None):
-    if device is None:
-        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-        net = net.to(device)
+    """
+    Train a network from the NAS-bench-101 search space on a dataset (`train_loader`).
+
+    Args:
+        net: Network to train.
+        train_loader: Train data loader.
+        loss: Loss, default is CrossEntropyLoss.
+        optimizer: Optimizer, default is SGD, possible: 'sgd', 'rmsprop', 'adam', or an optimizer object.
+        scheduler: Default is CosineAnnealingLR.
+        grad_clip: Gradient clipping parameter.
+        num_epochs: Number of training epochs.
+        num_validation: Number of validation examples (for print purposes).
+        validation_loader: Optional validation set.
+        device: Device to train on, default is cpu.
+        print_frequency: How often to print info about batches.
+        checkpoint_every_k: Every k epochs, save a checkpoint.
+        checkpoint_func: Custom function to save the checkpoint, signature: func(net, metric_dict)
+
+    Returns:
+        Final train (and validation) metrics.
+    """
+
+    net = net.to(device)
 
     # defaults
     if loss is None:
@@ -28,13 +47,14 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
     if scheduler is None:
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, num_epochs)
 
+    # training
+
     n_batches = len(train_loader)
     last_loss, acc, val_loss, val_acc = 0, 0, 0, 0
+    metric_dict = {}
     for epoch in range(num_epochs):
         # checkpoint using a user defined function
         if checkpoint_every_k is not None and (epoch + 1) % checkpoint_every_k == 0:
-            metric_dict = {'train_loss': last_loss, 'train_accuracy': acc,
-                           'val_loss': val_loss, 'val_accuracy': val_acc}
             checkpoint_func(net, metric_dict)
 
         net.train()
@@ -57,6 +77,7 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
             nn.utils.clip_grad_norm_(net.parameters(), grad_clip)
             optimizer.step()
 
+            # metrics
             train_loss += curr_loss.detach()
             _, predict = torch.max(outputs.data, 1)
             total += targets.size(0)
@@ -64,29 +85,39 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
 
             if (batch_idx % print_frequency) == 0:
                 print(f'Epoch={epoch}/{num_epochs} Batch={batch_idx + 1}/{n_batches} | '
-                      f'Loss={train_loss/(batch_idx+1):.3f}, '
-                      f'Acc={correct/total:.3f}({correct}/{total})')
+                      f'Loss={train_loss / (batch_idx + 1):.3f}, '
+                      f'Acc={correct / total:.3f}({correct}/{total})')
 
-        last_loss = train_loss / (batch_idx + 1) if batch_idx > 0 else np.inf
+        last_loss = train_loss / (batch_idx + 1)
         acc = correct / total
 
         if validation_loader is not None:
             val_loss, val_acc = test(net, validation_loader, loss, num_tests=num_validation, device=device)
 
+        # save metrics
+        metric_dict = {'train_loss': last_loss, 'train_accuracy': acc,
+                       'val_loss': val_loss, 'val_accuracy': val_acc}
         print('--------------------')
         scheduler.step()
 
-    if validation_loader is not None:
-        return last_loss, acc, val_loss, val_acc
-
-    return last_loss, acc
+    return metric_dict
 
 
 def test(net, test_loader, loss=None, num_tests=None, device=None):
-    if device is None:
-        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-        net = net.to(device)
+    """
+    Evaluate the network on a test set.
 
+    Args:
+        net: Network for testing.
+        test_loader: Test dataset.
+        loss: Loss function, default is CrossEntropyLoss.
+        num_tests: Number of test examples (for print purposes).
+        device: Device to use.
+
+    Returns:
+        Test metrics.
+    """
+    net = net.to(device)
     net.eval()
 
     if loss is None:
@@ -94,7 +125,6 @@ def test(net, test_loader, loss=None, num_tests=None, device=None):
 
     test_loss = 0
     correct = 0
-
     n_tests = 0
 
     with torch.no_grad():
@@ -120,4 +150,4 @@ def test(net, test_loader, loss=None, num_tests=None, device=None):
     last_loss = test_loss / len(test_loader) if len(test_loader) > 0 else np.inf
     acc = correct / num_tests
 
-    return last_loss, acc
+    return {'test_loss': last_loss, 'test_accuracy': acc}

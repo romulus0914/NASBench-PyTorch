@@ -8,8 +8,7 @@ import torch.optim as optim
 from nasbench_pytorch.datasets.cifar10 import prepare_dataset
 from nasbench_pytorch.model import Network
 from nasbench_pytorch.model import ModelSpec
-from nasbench_pytorch.trainer import train
-
+from nasbench_pytorch.trainer import train, test
 
 matrix = [[0, 1, 1, 1, 0, 1, 0],
           [0, 0, 0, 0, 0, 0, 1],
@@ -91,8 +90,12 @@ if __name__ == '__main__':
                           weight_decay=args.weight_decay)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, args.epochs)
 
-    train(net, train_loader, loss=criterion, optimizer=optimizer, scheduler=scheduler, grad_clip=args.grad_clip,
-          num_epochs=args.epochs, num_validation=args.validation_size, validation_loader=valid_loader,
-          device=args.device, print_frequency=1)
+    result = train(net, train_loader, loss=criterion, optimizer=optimizer, scheduler=scheduler, grad_clip=args.grad_clip,
+                   num_epochs=args.epochs, num_validation=args.validation_size, validation_loader=valid_loader,
+                   device=args.device, print_frequency=1)
+    print(f"Final train metrics: {result}")
+
+    result = test(net, test_loader, loss=criterion, num_tests=test_size, device=args.device)
+    print(f"\nFinal test metrics: {result}")
 
     save_checkpoint(net)
