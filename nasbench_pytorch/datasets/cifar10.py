@@ -2,6 +2,8 @@
 Specific transforms and constants have been extracted from
   https://github.com/google-research/nasbench/blob/master/nasbench/lib/cifar.py
 """
+import random
+from functools import partial
 
 import numpy as np
 import torch
@@ -20,8 +22,53 @@ def train_valid_split(dataset_size, valid_size, random_state=None):
     return SubsetRandomSampler(train_inds), SubsetRandomSampler(valid_inds)
 
 
+def seed_worker(seed, worker_id):
+    worker_seed = seed + worker_id
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
+
+
 def prepare_dataset(batch_size, test_batch_size=100, root='./data/', validation_size=0, random_state=None,
-                    no_valid_transform=False, num_workers=0):
+                    set_global_seed=False, no_valid_transform=False,
+                    num_workers=0, num_val_workers=0, num_test_workers=0):
+    """
+    Download the CIFAR-10 dataset and prepare train and test DataLoaders (optionally also validation loader).
+
+    Args:
+        batch_size: Batch size for the train (and validation) loader.
+        test_batch_size: Batch size for the test loader.
+        root: Directory path to download the CIFAR-10 dataset to.
+        validation_size: Size of the validation dataset to split off the train set.
+            If  == 0, don't return the validation set.
+
+        random_state: Seed for the random functions (generators from numpy and random)
+        set_global_seed: If True, call np.random.seed(random_state) and random.seed(random_state). Useful when
+            using 0 workers (because otherwise RandomCrop will return different results every call), but affects
+            the seed in the whole program.
+
+        no_valid_transform: If True, don't use RandomCrop and RandomFlip for the validation set.
+        num_workers: Number of workers for the train loader.
+        num_val_workers: Number of workers for the validation loader.
+        num_test_workers: Number of workers for the test loader.
+
+    Returns:
+        if validation_size > 0:
+            train loader, train size, validation loader, validation size, test loader, test size
+        otherwise:
+            train loader, train size, test loader, test size
+
+        The sizes are dataset sizes, not the number of batches.
+
+    """
+
+    if set_global_seed:
+        seed_worker(random_state, 0)
+
+    if random_state is not None:
+        worker_fn = partial(seed_worker, random_state)
+    else:
+        worker_fn=None
+
     print('\n--- Preparing CIFAR10 Data ---')
 
     train_transform = transforms.Compose([
@@ -45,16 +92,19 @@ def prepare_dataset(batch_size, test_batch_size=100, root='./data/', validation_
     if validation_size > 0:
         train_sampler, valid_sampler = train_valid_split(train_size, validation_size, random_state=random_state)
         train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=False,
-                                                   sampler=train_sampler, num_workers=num_workers)
+                                                   sampler=train_sampler, num_workers=num_workers,
+                                                   worker_init_fn=worker_fn)
         valid_loader = torch.utils.data.DataLoader(valid_set, batch_size=batch_size, shuffle=False,
-                                                   sampler=valid_sampler, num_workers=num_workers)
+                                                   sampler=valid_sampler, num_workers=num_val_workers,
+                                                   worker_init_fn=worker_fn)
     else:
-        train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True)
+        train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True,
+                                                   worker_init_fn=worker_fn)
         valid_loader = None
 
     test_set = torchvision.datasets.CIFAR10(root=root, train=False, download=True, transform=test_transform)
     test_loader = torch.utils.data.DataLoader(test_set, batch_size=test_batch_size, shuffle=False,
-                                              num_workers=num_workers)
+                                              num_workers=num_test_workers, worker_init_fn=worker_fn)
     test_size = len(test_set)
 
     print('--- CIFAR10 Data Prepared ---\n')

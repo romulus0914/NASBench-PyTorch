@@ -16,7 +16,9 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
     if loss is None:
         loss = nn.CrossEntropyLoss()
 
-    if optimizer is None or optimizer.lower() == 'sgd':
+    if not isinstance(optimizer, str):
+        pass
+    elif optimizer is None or optimizer.lower() == 'sgd':
         optimizer = torch.optim.SGD(net.parameters(), lr=0.025, momentum=0.9, weight_decay=1e-4)
     elif optimizer.lower() == 'rmsprop':
         optimizer = torch.optim.RMSprop(net.parameters(), lr=0.2, momentum=0.9, weight_decay=1e-4)

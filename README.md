@@ -1,6 +1,8 @@
 # NASBench-PyTorch
 A PyTorch implementation of *training* of NASBench
 
+TODOTODOTODO readme, license
+
 # Overview
 A PyTroch implementation of *training* of NASBench dataset: [NAS-Bench-101: Towards Reproducible Neural Architecture Search](https://arxiv.org/abs/1902.09635).
 NASBench dataset contains 423,624 unique neural networks exhaustively generated and evaluated from a fixed graph-based search space.
