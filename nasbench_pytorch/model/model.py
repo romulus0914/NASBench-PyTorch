@@ -24,7 +24,7 @@ import torch.nn as nn
 
 
 class Network(nn.Module):
-    def __init__(self, spec, num_labels,
+    def __init__(self, spec, num_labels=10,
                  in_channels=3, stem_out_channels=128, num_stacks=3, num_modules_per_stack=3):
         """
 

@@ -108,7 +108,16 @@ def prepare_dataset(batch_size, test_batch_size=100, root='./data/', validation_
 
     print('--- CIFAR10 Data Prepared ---\n')
 
-    if validation_size > 0:
-        return train_loader, train_size - validation_size, valid_loader, validation_size, test_loader, test_size
+    data = {
+        'train': train_loader,
+        'train_size': train_size,
+        'test': test_loader,
+        'test_size': test_size
+    }
 
-    return train_loader, train_size, test_loader, test_size
+    if validation_size > 0:
+        data['train_size'] = train_size - validation_size
+        data['validation'] = valid_loader
+        data['validation_size'] = validation_size
+
+    return data

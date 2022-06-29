@@ -28,7 +28,7 @@ def save_checkpoint(net, postfix='cifar10'):
     if not os.path.isdir('checkpoint'):
         os.mkdir('checkpoint')
 
-    torch.save(net.state_dict(), './checkpoint/ckpt.' + postfix)
+    torch.save(net.state_dict(), './checkpoint/ckpt_' + postfix + '.pt')
 
 def reload_checkpoint(path, device=None):
     print('--- Reloading Checkpoint ---')
@@ -62,6 +62,7 @@ if __name__ == '__main__':
     parser.add_argument('--load_checkpoint', default='', type=str, help='Reload model from checkpoint')
     parser.add_argument('--num_labels', default=10, type=int, help='#classes')
     parser.add_argument('--device', default='cuda', type=str, help='Device for network training.')
+    parser.add_argument('--print_freq', default=100, type=int, help='Batch print frequency.')
 
     args = parser.parse_args()
 
@@ -70,15 +71,12 @@ if __name__ == '__main__':
                               validation_size=args.validation_size, random_state=args.random_state,
                               set_global_seed=True, num_workers=args.num_workers)
 
-    if args.validation_size > 0:
-        train_loader, train_size, valid_loader, validation_size, test_loader, test_size = dataset
-    else:
-        train_loader, train_size, test_loader, test_size = dataset
-        valid_loader = None
+    train_loader, test_loader, test_size = dataset['train'], dataset['test'], dataset['test_size']
+    valid_loader = dataset['validation'] if args.validation_size > 0 else None
 
     # model
     spec = ModelSpec(matrix, operations)
-    net = Network(spec, args.num_labels, in_channels=args.in_channels, stem_out_channels=args.stem_out_channels,
+    net = Network(spec, num_labels=args.num_labels, in_channels=args.in_channels, stem_out_channels=args.stem_out_channels,
                   num_stacks=args.num_stacks, num_modules_per_stack=args.num_modules_per_stack)
 
     if args.load_checkpoint != '':
@@ -92,7 +90,7 @@ if __name__ == '__main__':
 
     result = train(net, train_loader, loss=criterion, optimizer=optimizer, scheduler=scheduler, grad_clip=args.grad_clip,
                    num_epochs=args.epochs, num_validation=args.validation_size, validation_loader=valid_loader,
-                   device=args.device, print_frequency=1)
+                   device=args.device, print_frequency=args.print_freq)
     print(f"Final train metrics: {result}")
 
     result = test(net, test_loader, loss=criterion, num_tests=test_size, device=args.device)

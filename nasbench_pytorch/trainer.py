@@ -50,7 +50,7 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
     # training
 
     n_batches = len(train_loader)
-    last_loss, acc, val_loss, val_acc = 0, 0, 0, 0
+    last_loss, acc, val_loss, val_acc = [torch.tensor(0.0) for _ in range(4)]
     metric_dict = {}
     for epoch in range(num_epochs):
         # checkpoint using a user defined function
@@ -59,8 +59,8 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
 
         net.train()
 
-        train_loss = 0
-        correct = 0
+        train_loss = torch.tensor(0.0)
+        correct = torch.tensor(0.0)
         total = 0
 
         batch_idx = 0
@@ -95,8 +95,8 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
             val_loss, val_acc = test(net, validation_loader, loss, num_tests=num_validation, device=device)
 
         # save metrics
-        metric_dict = {'train_loss': last_loss, 'train_accuracy': acc,
-                       'val_loss': val_loss, 'val_accuracy': val_acc}
+        metric_dict = {'train_loss': last_loss.item(), 'train_accuracy': acc.item(),
+                       'val_loss': val_loss.item(), 'val_accuracy': val_acc.item()}
         print('--------------------')
         scheduler.step()
 
@@ -150,4 +150,4 @@ def test(net, test_loader, loss=None, num_tests=None, device=None):
     last_loss = test_loss / len(test_loader) if len(test_loader) > 0 else np.inf
     acc = correct / num_tests
 
-    return {'test_loss': last_loss, 'test_accuracy': acc}
+    return {'test_loss': last_loss.item(), 'test_accuracy': acc.item()}
