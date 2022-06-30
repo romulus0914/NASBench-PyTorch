@@ -61,7 +61,7 @@ Example architecture (picture from the original repository)
 
 # Disclaimer
 Modified from [NASBench: A Neural Architecture Search Dataset and Benchmark](https://github.com/google-research/nasbench).
-*graph_util.py* and *model_spec.py* are directly copied from the original repo.
+*graph_util.py* and *model_spec.py* are directly copied from the original repo. Original license can be found [here](https://github.com/google-research/nasbench/blob/master/LICENSE).
 
 <a href="#note"></a>	
 **Please note that this repo is only used to train one possible architecture in the search space, not to generate all possible graphs and train them.
