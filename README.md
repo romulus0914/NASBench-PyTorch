@@ -61,8 +61,9 @@ Then, you can train it just like the example network in `main.py`.
 Example architecture (picture from the original repository)
 ![archtecture](./assets/architecture.png)
 
-# Disclaimer<a id="note"></a>
+# Disclaimer
 Modified from [NASBench: A Neural Architecture Search Dataset and Benchmark](https://github.com/google-research/nasbench).
 *graph_util.py* and *model_spec.py* are directly copied from the original repo. Original license can be found [here](https://github.com/google-research/nasbench/blob/master/LICENSE).
 
+<a id="note"></a>
 **Please note that this repo is only used to train one possible architecture in the search space, not to generate all possible graphs and train them.
