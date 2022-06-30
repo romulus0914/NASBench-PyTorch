@@ -16,39 +16,61 @@ from __future__ import print_function
 import numpy as np
 import math
 
-from base_ops import *
+from nasbench_pytorch.model.base_ops import *
+from nasbench_pytorch.model.model_spec import ModelSpec
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+
 
 class Network(nn.Module):
-    def __init__(self, spec, args):
+    def __init__(self, spec, num_labels=10,
+                 in_channels=3, stem_out_channels=128, num_stacks=3, num_modules_per_stack=3):
+        """
+
+        Args:
+            spec: ModelSpec from nasbench, or a tuple (adjacency matrix, ops)
+            num_labels: Number of output labels.
+            in_channels: Number of input image channels.
+            stem_out_channels: Number of output stem channels. Other hidden channels are computed and depend on this
+                number.
+
+            num_stacks: Number of stacks, in every stacks the cells have the same number of channels.
+            num_modules_per_stack: Number of cells per stack.
+        """
         super(Network, self).__init__()
+
+        if isinstance(spec, tuple):
+            spec = ModelSpec(spec[0], spec[1])
+
+        self.spec = spec
+        self.cell_indices = set()
 
         self.layers = nn.ModuleList([])
 
-        in_channels = 3
-        out_channels = args.stem_out_channels
-
         # initial stem convolution
+        out_channels = stem_out_channels
         stem_conv = ConvBnRelu(in_channels, out_channels, 3, 1, 1)
         self.layers.append(stem_conv)
 
+        # stacked cells
         in_channels = out_channels
-        for stack_num in range(args.num_stacks):
+        for stack_num in range(num_stacks):
+            # downsample after every but the last cell
             if stack_num > 0:
                 downsample = nn.MaxPool2d(kernel_size=2, stride=2)
                 self.layers.append(downsample)
 
                 out_channels *= 2
 
-            for module_num in range(args.num_modules_per_stack):
+            for module_num in range(num_modules_per_stack):
                 cell = Cell(spec, in_channels, out_channels)
                 self.layers.append(cell)
                 in_channels = out_channels
 
-        self.classifier = nn.Linear(out_channels, args.num_labels)
+                self.cell_indices.add(len(self.layers) - 1)
+
+        self.classifier = nn.Linear(out_channels, num_labels)
 
         self._initialize_weights()
 
@@ -71,7 +93,6 @@ class Network(nn.Module):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
             elif isinstance(m, nn.Linear):
-                n = m.weight.size(1)
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
 
