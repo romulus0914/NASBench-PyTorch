@@ -23,7 +23,7 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
         device: Device to train on, default is cpu.
         print_frequency: How often to print info about batches.
         checkpoint_every_k: Every k epochs, save a checkpoint.
-        checkpoint_func: Custom function to save the checkpoint, signature: func(net, metric_dict)
+        checkpoint_func: Custom function to save the checkpoint, signature: func(net, metric_dict, epoch num)
 
     Returns:
         Final train (and validation) metrics.
@@ -55,7 +55,7 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
     for epoch in range(num_epochs):
         # checkpoint using a user defined function
         if checkpoint_every_k is not None and (epoch + 1) % checkpoint_every_k == 0:
-            checkpoint_func(net, metric_dict)
+            checkpoint_func(net, metric_dict, epoch + 1)
 
         net.train()
 
