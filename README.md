@@ -51,7 +51,10 @@ nasbench_path = '$path_to_downloaded_nasbench'
 nb = api.NASBench(nasbench_path)
 
 net_hash = '$some_hash'  # you can get hashes using nasbench.hash_iterator()
-ops, adjacency = get_net_from_hash(net_hash, nb)
+m = nb.get_metrics_from_hash(net_hash)
+ops = m[0]['module_operations']
+adjacency = m[0]['module_adjacency']
+
 net = NBNetwork((adjacency, ops))
 ```
 
