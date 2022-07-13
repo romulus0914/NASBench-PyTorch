@@ -39,7 +39,7 @@ def reload_checkpoint(path, device=None):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='NASBench')
-    parser.add_argument('--random_state', default=None, type=int, help='Random seed.')
+    parser.add_argument('--random_state', default=1, type=int, help='Random seed.')
     parser.add_argument('--data_root', default='./data/', type=str, help='Path where cifar will be downloaded.')
     parser.add_argument('--module_vertices', default=7, type=int, help='#vertices in graph')
     parser.add_argument('--max_edges', default=9, type=int, help='max edges in graph')
