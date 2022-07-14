@@ -35,7 +35,7 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
     if loss is None:
         loss = nn.CrossEntropyLoss()
 
-    if not isinstance(optimizer, str):
+    if optimizer is not None and not isinstance(optimizer, str):
         pass
     elif optimizer is None or optimizer.lower() == 'sgd':
         optimizer = torch.optim.SGD(net.parameters(), lr=0.025, momentum=0.9, weight_decay=1e-4)
