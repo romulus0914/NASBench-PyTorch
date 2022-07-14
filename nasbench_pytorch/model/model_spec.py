@@ -25,6 +25,7 @@ from __future__ import print_function
 
 import copy
 import numpy as np
+import torch
 
 from nasbench_pytorch.model import graph_util
 
@@ -52,6 +53,7 @@ class ModelSpec(object):
     Raises:
       ValueError: invalid matrix or ops
     """
+
     if not isinstance(matrix, np.ndarray):
       matrix = np.array(matrix)
     shape = np.shape(matrix)
@@ -72,6 +74,8 @@ class ModelSpec(object):
     self.ops = copy.deepcopy(ops)
     self.valid_spec = True
     self._prune()
+
+    self.matrix = torch.tensor(self.matrix)
 
     self.data_format = data_format
 

@@ -43,7 +43,6 @@ class Network(nn.Module):
         if isinstance(spec, tuple):
             spec = ModelSpec(spec[0], spec[1])
 
-        self.spec = spec
         self.cell_indices = set()
 
         self.layers = nn.ModuleList([])
@@ -106,60 +105,72 @@ class Cell(nn.Module):
     def __init__(self, spec, in_channels, out_channels):
         super(Cell, self).__init__()
 
-        self.spec = spec
-        self.num_vertices = np.shape(self.spec.matrix)[0]
+        self.matrix = spec.matrix
+        self.num_vertices = np.shape(self.matrix)[0]
 
         # vertex_channels[i] = number of output channels of vertex i
-        self.vertex_channels = ComputeVertexChannels(in_channels, out_channels, self.spec.matrix)
+        self.vertex_channels = ComputeVertexChannels(in_channels, out_channels, self.matrix)
         #self.vertex_channels = [in_channels] + [out_channels] * (self.num_vertices - 1)
 
         # operation for each node
-        self.vertex_op = nn.ModuleList([None])
+        self.vertex_op = nn.ModuleList([Placeholder()])
         for t in range(1, self.num_vertices-1):
             op = OP_MAP[spec.ops[t]](self.vertex_channels[t], self.vertex_channels[t])
             self.vertex_op.append(op)
 
         # operation for input on each vertex
-        self.input_op = nn.ModuleList([None])
+        self.input_op = nn.ModuleList([Placeholder()])
         for t in range(1, self.num_vertices):
-            if self.spec.matrix[0, t]:
+            if self.matrix[0, t]:
                 self.input_op.append(Projection(in_channels, self.vertex_channels[t]))
             else:
-                self.input_op.append(None)
+                self.input_op.append(Placeholder())
+
+        self.last_inop : Projection = self.input_op[self.num_vertices-1]
 
     def forward(self, x):
         tensors = [x]
 
         out_concat = []
-        for t in range(1, self.num_vertices-1):
-            fan_in = [Truncate(tensors[src], self.vertex_channels[t]) for src in range(1, t) if self.spec.matrix[src, t]]
+        # range(1, self.num_vertices - 1),
+        for t, (inmod, outmod) in enumerate(zip(self.input_op, self.vertex_op)):
+            if 0 < t < (self.num_vertices - 1):
 
-            if self.spec.matrix[0, t]:
-                fan_in.append(self.input_op[t](x))
+                fan_in = []
+                for src in range(1, t):
+                    if self.matrix[src, t]:
+                        fan_in.append(Truncate(tensors[src], torch.tensor(self.vertex_channels[t])))
 
-            # perform operation on node
-            #vertex_input = torch.stack(fan_in, dim=0).sum(dim=0)
-            vertex_input = sum(fan_in)
-            #vertex_input = sum(fan_in) / len(fan_in)
-            vertex_output = self.vertex_op[t](vertex_input)
+                if self.matrix[0, t]:
+                    l = inmod(x)
+                    fan_in.append(l)
 
-            tensors.append(vertex_output)
-            if self.spec.matrix[t, self.num_vertices-1]:
-                out_concat.append(tensors[t])
+                # perform operation on node
+                #vertex_input = torch.stack(fan_in, dim=0).sum(dim=0)
+                vertex_input = torch.zeros(fan_in[0].shape)
+                for val in fan_in:
+                    vertex_input += val
+                #vertex_input = sum(fan_in)
+                #vertex_input = sum(fan_in) / len(fan_in)
+                vertex_output = outmod(vertex_input)
+
+                tensors.append(vertex_output)
+                if self.matrix[t, self.num_vertices-1]:
+                    out_concat.append(tensors[t])
 
         if not out_concat:
-            assert self.spec.matrix[0, self.num_vertices-1]
-            outputs = self.input_op[self.num_vertices-1](tensors[0])
+            assert self.matrix[0, self.num_vertices-1]
+            outputs = self.last_inop(tensors[0])
         else:
             if len(out_concat) == 1:
                 outputs = out_concat[0]
             else:
                 outputs = torch.cat(out_concat, 1)
 
-            if self.spec.matrix[0, self.num_vertices-1]:
-                outputs += self.input_op[self.num_vertices-1](tensors[0])
+            if self.matrix[0, self.num_vertices-1]:
+                outputs += self.last_inop(tensors[0])
 
-            #if self.spec.matrix[0, self.num_vertices-1]:
+            #if self.matrix[0, self.num_vertices-1]:
             #    out_concat.append(self.input_op[self.num_vertices-1](tensors[0]))
             #outputs = sum(out_concat) / len(out_concat)
 
@@ -196,6 +207,9 @@ def ComputeVertexChannels(in_channels, out_channels, matrix):
     Returns:
         list of channel counts, in order of the vertices.
     """
+    if isinstance(matrix, torch.Tensor):
+        matrix = matrix.numpy()
+
     num_vertices = np.shape(matrix)[0]
 
     vertex_channels = [0] * num_vertices
@@ -241,4 +255,13 @@ def ComputeVertexChannels(in_channels, out_channels, matrix):
     assert final_fan_in == out_channels or num_vertices == 2
     # num_vertices == 2 means only input/output nodes, so 0 fan-in
 
-    return vertex_channels
+    return [int(v) for v in vertex_channels]
+
+
+class Placeholder(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.a = torch.nn.Parameter(torch.randn(()))
+
+    def forward(self, x):
+        return x
