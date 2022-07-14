@@ -91,7 +91,9 @@ if __name__ == '__main__':
     result = train(net, train_loader, loss=criterion, optimizer=optimizer, scheduler=scheduler, grad_clip=args.grad_clip,
                    num_epochs=args.epochs, num_validation=args.validation_size, validation_loader=valid_loader,
                    device=args.device, print_frequency=args.print_freq)
-    print(f"Final train metrics: {result}")
+
+    last_epoch = {k: v[-1] for k, v in result.items() if len(v) > 0}
+    print(f"Final train metrics: {last_epoch}")
 
     result = test(net, test_loader, loss=criterion, num_tests=test_size, device=args.device)
     print(f"\nFinal test metrics: {result}")

@@ -51,7 +51,7 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
 
     n_batches = len(train_loader)
     last_loss, acc, val_loss, val_acc = [torch.tensor(0.0) for _ in range(4)]
-    metric_dict = {}
+    metric_dict = {'train_loss': [], 'train_accuracy': [], 'val_loss': [], 'val_accuracy': []}
     for epoch in range(num_epochs):
         # checkpoint using a user defined function
         if checkpoint_every_k is not None and (epoch + 1) % checkpoint_every_k == 0:
@@ -91,12 +91,15 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
         last_loss = train_loss / (batch_idx + 1)
         acc = correct / total
 
-        if validation_loader is not None:
-            val_loss, val_acc = test(net, validation_loader, loss, num_tests=num_validation, device=device)
-
         # save metrics
-        metric_dict = {'train_loss': last_loss.item(), 'train_accuracy': acc.item(),
-                       'val_loss': val_loss.item(), 'val_accuracy': val_acc.item()}
+        metric_dict['train_loss'].append(last_loss.item())
+        metric_dict['train_accuracy'].append(acc.item())
+
+        if validation_loader is not None:
+            test_metrics = test(net, validation_loader, loss, num_tests=num_validation, device=device)
+            metric_dict['val_loss'].append(test_metrics['test_loss'])
+            metric_dict['val_accuracy'].append(test_metrics['test_accuracy'])
+
         print('--------------------')
         scheduler.step()
 
