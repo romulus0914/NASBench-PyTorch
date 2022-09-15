@@ -105,6 +105,8 @@ class Cell(nn.Module):
     def __init__(self, spec, in_channels, out_channels):
         super(Cell, self).__init__()
 
+        self.dev_param = nn.Parameter(torch.empty(0))
+
         self.matrix = spec.matrix
         self.num_vertices = np.shape(self.matrix)[0]
 
@@ -147,7 +149,7 @@ class Cell(nn.Module):
 
                 # perform operation on node
                 #vertex_input = torch.stack(fan_in, dim=0).sum(dim=0)
-                vertex_input = torch.zeros(fan_in[0].shape)
+                vertex_input = torch.zeros(fan_in[0].shape).to(self.dev_param.device)
                 for val in fan_in:
                     vertex_input += val
                 #vertex_input = sum(fan_in)
