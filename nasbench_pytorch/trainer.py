@@ -50,7 +50,7 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
     # training
 
     n_batches = len(train_loader)
-    last_loss, acc, val_loss, val_acc = [torch.tensor(0.0) for _ in range(4)]
+
     metric_dict = {'train_loss': [], 'train_accuracy': [], 'val_loss': [], 'val_accuracy': []}
     for epoch in range(num_epochs):
         # checkpoint using a user defined function
@@ -60,7 +60,7 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
         net.train()
 
         train_loss = torch.tensor(0.0)
-        correct = torch.tensor(0.0)
+        correct = torch.tensor(0)
         total = 0
 
         batch_idx = 0
@@ -78,10 +78,10 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
             optimizer.step()
 
             # metrics
-            train_loss += curr_loss.detach()
+            train_loss += curr_loss.detach().cpu()
             _, predict = torch.max(outputs.data, 1)
             total += targets.size(0)
-            correct += predict.eq(targets.data).sum().detach()
+            correct += predict.eq(targets.data).sum().detach().cpu()
 
             if (batch_idx % print_frequency) == 0:
                 print(f'Epoch={epoch}/{num_epochs} Batch={batch_idx + 1}/{n_batches} | '
