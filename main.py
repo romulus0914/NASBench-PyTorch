@@ -56,9 +56,12 @@ if __name__ == '__main__':
     parser.add_argument('--num_workers', default=0, type=int, help="Number of parallel workers for the train dataset.")
     parser.add_argument('--learning_rate', default=0.025, type=float, help='base learning rate')
     parser.add_argument('--lr_decay_method', default='COSINE_BY_STEP', type=str, help='learning decay method')
+    parser.add_argument('--optimizer', default='sgd', type=str, help='Optimizer (sgd or rmsprop)')
     parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
     parser.add_argument('--weight_decay', default=1e-4, type=float, help='L2 regularization weight')   
     parser.add_argument('--grad_clip', default=5, type=float, help='gradient clipping')
+    parser.add_argument('--batch_norm_momentum', default=0.1, type=float, help='Batch normalization momentum')
+    parser.add_argument('--batch_norm_eps', default=1e-5, type=float, help='Batch normalization epsilon')
     parser.add_argument('--load_checkpoint', default='', type=str, help='Reload model from checkpoint')
     parser.add_argument('--num_labels', default=10, type=int, help='#classes')
     parser.add_argument('--device', default='cuda', type=str, help='Device for network training.')
@@ -77,14 +80,23 @@ if __name__ == '__main__':
     # model
     spec = ModelSpec(matrix, operations)
     net = Network(spec, num_labels=args.num_labels, in_channels=args.in_channels, stem_out_channels=args.stem_out_channels,
-                  num_stacks=args.num_stacks, num_modules_per_stack=args.num_modules_per_stack)
+                  num_stacks=args.num_stacks, num_modules_per_stack=args.num_modules_per_stack,
+                  momentum=args.batch_norm_momentum, eps=args.batch_norm_eps)
 
     if args.load_checkpoint != '':
         net.load_state_dict(reload_checkpoint(args.load_checkpoint))
     net.to(args.device)
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), lr=args.learning_rate, momentum=args.momentum,
+
+    if args.optimizer.lower() == 'sgd':
+        optimizer = optim.SGD
+    elif args.optimizer.lower() == 'rmsprop':
+        optimizer = optim.RMSprop
+    else:
+        raise ValueError(f"Invalid optimizer {args.optimizer}, possible: SGD, RMSProp")
+
+    optimizer = optimizer(net.parameters(), lr=args.learning_rate, momentum=args.momentum,
                           weight_decay=args.weight_decay)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, args.epochs)
 

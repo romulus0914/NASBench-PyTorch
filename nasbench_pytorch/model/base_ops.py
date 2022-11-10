@@ -9,12 +9,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class ConvBnRelu(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=1, stride=1, padding=0):
+    def __init__(self, in_channels, out_channels, kernel_size=1, stride=1, padding=0, momentum=0.1, eps=1e-5):
         super(ConvBnRelu, self).__init__()
 
         self.conv_bn_relu = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, bias=False),
-            nn.BatchNorm2d(out_channels),
+            nn.BatchNorm2d(out_channels, eps=eps, momentum=momentum),
             nn.ReLU()
         )
 
@@ -23,10 +23,10 @@ class ConvBnRelu(nn.Module):
 
 class Conv3x3BnRelu(nn.Module):
     """3x3 convolution with batch norm and ReLU activation."""
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, **kwargs):
         super(Conv3x3BnRelu, self).__init__()
 
-        self.conv3x3 = ConvBnRelu(in_channels, out_channels, 3, 1, 1)
+        self.conv3x3 = ConvBnRelu(in_channels, out_channels, 3, 1, 1, **kwargs)
 
     def forward(self, x):
         x = self.conv3x3(x)
@@ -34,10 +34,10 @@ class Conv3x3BnRelu(nn.Module):
 
 class Conv1x1BnRelu(nn.Module):
     """1x1 convolution with batch norm and ReLU activation."""
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, **kwargs):
         super(Conv1x1BnRelu, self).__init__()
 
-        self.conv1x1 = ConvBnRelu(in_channels, out_channels, 1, 1, 0)
+        self.conv1x1 = ConvBnRelu(in_channels, out_channels, 1, 1, 0, **kwargs)
 
     def forward(self, x):
         x = self.conv1x1(x)

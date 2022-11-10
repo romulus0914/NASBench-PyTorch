@@ -25,7 +25,7 @@ import torch.nn as nn
 
 class Network(nn.Module):
     def __init__(self, spec, num_labels=10,
-                 in_channels=3, stem_out_channels=128, num_stacks=3, num_modules_per_stack=3):
+                 in_channels=3, stem_out_channels=128, num_stacks=3, num_modules_per_stack=3, momentum=0.1, eps=1e-5):
         """
 
         Args:
@@ -49,7 +49,7 @@ class Network(nn.Module):
 
         # initial stem convolution
         out_channels = stem_out_channels
-        stem_conv = ConvBnRelu(in_channels, out_channels, 3, 1, 1)
+        stem_conv = ConvBnRelu(in_channels, out_channels, 3, 1, 1, momentum=momentum, eps=eps)
         self.layers.append(stem_conv)
 
         # stacked cells
@@ -63,7 +63,7 @@ class Network(nn.Module):
                 out_channels *= 2
 
             for module_num in range(num_modules_per_stack):
-                cell = Cell(spec, in_channels, out_channels)
+                cell = Cell(spec, in_channels, out_channels, momentum=momentum, eps=eps)
                 self.layers.append(cell)
                 in_channels = out_channels
 
@@ -102,7 +102,7 @@ class Cell(nn.Module):
     determined via equally splitting the channel count whenever there is a
     concatenation of Tensors.
     """
-    def __init__(self, spec, in_channels, out_channels):
+    def __init__(self, spec, in_channels, out_channels, momentum=0.1, eps=1e-5):
         super(Cell, self).__init__()
 
         self.dev_param = nn.Parameter(torch.empty(0))
@@ -124,7 +124,7 @@ class Cell(nn.Module):
         self.input_op = nn.ModuleList([Placeholder()])
         for t in range(1, self.num_vertices):
             if self.matrix[0, t]:
-                self.input_op.append(Projection(in_channels, self.vertex_channels[t]))
+                self.input_op.append(Projection(in_channels, self.vertex_channels[t], momentum=momentum, eps=eps))
             else:
                 self.input_op.append(Placeholder())
 
@@ -179,9 +179,11 @@ class Cell(nn.Module):
 
         return outputs
 
-def Projection(in_channels, out_channels):
+
+def Projection(in_channels, out_channels, momentum=0.1, eps=1e-5):
     """1x1 projection (as in ResNet) followed by batch normalization and ReLU."""
-    return ConvBnRelu(in_channels, out_channels, 1)
+    return ConvBnRelu(in_channels, out_channels, 1, momentum=momentum, eps=eps)
+
 
 def Truncate(inputs, channels):
     """Slice the inputs to channels if necessary."""
@@ -196,6 +198,7 @@ def Truncate(inputs, channels):
         # the minimum channel count.
         assert input_channels - channels == 1
         return inputs[:, :channels, :, :]
+
 
 def ComputeVertexChannels(in_channels, out_channels, matrix):
     """Computes the number of channels at every vertex.
