@@ -149,7 +149,8 @@ class Cell(nn.Module):
 
                 # perform operation on node
                 #vertex_input = torch.stack(fan_in, dim=0).sum(dim=0)
-                vertex_input = torch.zeros(fan_in[0].shape).to(self.dev_param.device)
+                vertex_input = torch.zeros_like(fan_in[0]).to(self.dev_param.device)
+                
                 for val in fan_in:
                     vertex_input += val
                 #vertex_input = sum(fan_in)
