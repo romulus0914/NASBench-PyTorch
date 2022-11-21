@@ -67,7 +67,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_labels', default=10, type=int, help='#classes')
     parser.add_argument('--device', default='cuda', type=str, help='Device for network training.')
     parser.add_argument('--print_freq', default=100, type=int, help='Batch print frequency.')
-    parser.add_argument('--tf_like/--torch_default', default=False, type=bool,
+    parser.add_argument('--tf_like', default=False, type=bool,
                         help='If true, use same weight initialization as in the tensorflow version.')
 
     args = parser.parse_args()
@@ -82,9 +82,10 @@ if __name__ == '__main__':
 
     # model
     spec = ModelSpec(matrix, operations)
-    net = Network(spec, num_labels=args.num_labels, in_channels=args.in_channels, stem_out_channels=args.stem_out_channels,
-                  num_stacks=args.num_stacks, num_modules_per_stack=args.num_modules_per_stack,
-                  momentum=args.batch_norm_momentum, eps=args.batch_norm_eps)
+    net = Network(spec, num_labels=args.num_labels, in_channels=args.in_channels,
+                  stem_out_channels=args.stem_out_channels, num_stacks=args.num_stacks,
+                  num_modules_per_stack=args.num_modules_per_stack,
+                  momentum=args.batch_norm_momentum, eps=args.batch_norm_eps, tf_like=args.tf_like)
 
     if args.load_checkpoint != '':
         net.load_state_dict(reload_checkpoint(args.load_checkpoint))

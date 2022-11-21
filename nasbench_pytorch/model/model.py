@@ -87,8 +87,8 @@ class Network(nn.Module):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 if self.tf_like:
-                    fan_in = _calculate_fan_in_and_fan_out(m.weight)
-                    torch.nn.init.normal_(m.weight, mean=0, std=torch.sqrt(1.0 / fan_in))
+                    fan_in, _ = _calculate_fan_in_and_fan_out(m.weight)
+                    torch.nn.init.normal_(m.weight, mean=0, std=1.0 / torch.sqrt(torch.tensor(fan_in)))
                 else:
                     n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
                     m.weight.data.normal_(0, math.sqrt(2.0 / n))
