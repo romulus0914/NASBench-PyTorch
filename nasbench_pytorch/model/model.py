@@ -21,11 +21,12 @@ from nasbench_pytorch.model.model_spec import ModelSpec
 
 import torch
 import torch.nn as nn
+from torch.nn.init import _calculate_fan_in_and_fan_out
 
 
 class Network(nn.Module):
-    def __init__(self, spec, num_labels=10,
-                 in_channels=3, stem_out_channels=128, num_stacks=3, num_modules_per_stack=3, momentum=0.1, eps=1e-5):
+    def __init__(self, spec, num_labels=10, in_channels=3, stem_out_channels=128, num_stacks=3, num_modules_per_stack=3,
+                 momentum=0.1, eps=1e-5, tf_like=False):
         """
 
         Args:
@@ -45,6 +46,7 @@ class Network(nn.Module):
 
         self.cell_indices = set()
 
+        self.tf_like = tf_like
         self.layers = nn.ModuleList([])
 
         # initial stem convolution
@@ -84,16 +86,26 @@ class Network(nn.Module):
     def _initialize_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2.0 / n))
+                if self.tf_like:
+                    fan_in = _calculate_fan_in_and_fan_out(m.weight)
+                    torch.nn.init.normal_(m.weight, mean=0, std=torch.sqrt(1.0 / fan_in))
+                else:
+                    n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                    m.weight.data.normal_(0, math.sqrt(2.0 / n))
+
                 if m.bias is not None:
                     m.bias.data.zero_()
+
             elif isinstance(m, nn.BatchNorm2d):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
             elif isinstance(m, nn.Linear):
-                m.weight.data.normal_(0, 0.01)
+                if self.tf_like:
+                    torch.nn.init.xavier_uniform_(m.weight)
+                else:
+                    m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
+
 
 class Cell(nn.Module):
     """
