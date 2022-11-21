@@ -103,7 +103,6 @@ if __name__ == '__main__':
         from timm.optim import RMSpropTF
         optimizer = RMSpropTF
         optimizer_kwargs = {'eps': args.rmsprop_eps}
-        raise ValueError("")
     else:
         raise ValueError(f"Invalid optimizer {args.optimizer}, possible: SGD, RMSProp")
 
