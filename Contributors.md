@@ -1,4 +1,11 @@
 # Contributors
-
+- [@romulus0914](https://github.com/romulus0914) (Romulus Hong)
+  - Author of the code - NAS-Bench-101 implementation in PyTorch
+- [@gabikadlecova](https://github.com/gabikadlecova)
+  - Maintainer of the repository
+  - Package structure, reproducibility
+---------
 - [@abhash-er](https://github.com/abhash-er/) (Abhash Jha)
-    - modified the model code so that cast to double is possible
+  - modified the model code so that cast to double is possible
+- [@longerHost](https://github.com/longerHost)
+  - reproducibility of the original NAS-Bench-101 results

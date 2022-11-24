@@ -70,3 +70,7 @@ Modified from [NASBench: A Neural Architecture Search Dataset and Benchmark](htt
 
 <a id="note"></a>
 **Please note that this repo is only used to train one possible architecture in the search space, not to generate all possible graphs and train them.
+
+**Important information:** The code should closely match the TensorFlow version, but
+you may still get slightly different results due to differences in TensorFlow/PyTorch implementation.
+Moreover, input data augmentation is the same, but due to randomness isn't exactly the same.

@@ -110,7 +110,7 @@ class Network(nn.Module):
 class Cell(nn.Module):
     """
     Builds the model using the adjacency matrix and op labels specified. Channels
-    controls the module output channel count but the interior channels are
+    control the module output channel count but the interior channels are
     determined via equally splitting the channel count whenever there is a
     concatenation of Tensors.
     """
@@ -123,7 +123,7 @@ class Cell(nn.Module):
         self.num_vertices = np.shape(self.matrix)[0]
 
         # vertex_channels[i] = number of output channels of vertex i
-        self.vertex_channels = ComputeVertexChannels(in_channels, out_channels, self.matrix)
+        self.vertex_channels = compute_vertex_channels(in_channels, out_channels, self.matrix)
         #self.vertex_channels = [in_channels] + [out_channels] * (self.num_vertices - 1)
 
         # operation for each node
@@ -136,11 +136,11 @@ class Cell(nn.Module):
         self.input_op = nn.ModuleList([Placeholder()])
         for t in range(1, self.num_vertices):
             if self.matrix[0, t]:
-                self.input_op.append(Projection(in_channels, self.vertex_channels[t], momentum=momentum, eps=eps))
+                self.input_op.append(projection(in_channels, self.vertex_channels[t], momentum=momentum, eps=eps))
             else:
                 self.input_op.append(Placeholder())
 
-        self.last_inop : Projection = self.input_op[self.num_vertices-1]
+        self.last_inop : projection = self.input_op[self.num_vertices - 1]
 
     def forward(self, x):
         tensors = [x]
@@ -153,20 +153,17 @@ class Cell(nn.Module):
                 fan_in = []
                 for src in range(1, t):
                     if self.matrix[src, t]:
-                        fan_in.append(Truncate(tensors[src], torch.tensor(self.vertex_channels[t])))
+                        fan_in.append(truncate(tensors[src], torch.tensor(self.vertex_channels[t])))
 
                 if self.matrix[0, t]:
                     l = inmod(x)
                     fan_in.append(l)
 
                 # perform operation on node
-                #vertex_input = torch.stack(fan_in, dim=0).sum(dim=0)
                 vertex_input = torch.zeros_like(fan_in[0]).to(self.dev_param.device)
-                
                 for val in fan_in:
                     vertex_input += val
-                #vertex_input = sum(fan_in)
-                #vertex_input = sum(fan_in) / len(fan_in)
+
                 vertex_output = outmod(vertex_input)
 
                 tensors.append(vertex_output)
@@ -185,19 +182,15 @@ class Cell(nn.Module):
             if self.matrix[0, self.num_vertices-1]:
                 outputs = outputs + self.last_inop(tensors[0])
 
-            #if self.matrix[0, self.num_vertices-1]:
-            #    out_concat.append(self.input_op[self.num_vertices-1](tensors[0]))
-            #outputs = sum(out_concat) / len(out_concat)
-
         return outputs
 
 
-def Projection(in_channels, out_channels, momentum=0.1, eps=1e-5):
+def projection(in_channels, out_channels, momentum=0.1, eps=1e-5):
     """1x1 projection (as in ResNet) followed by batch normalization and ReLU."""
     return ConvBnRelu(in_channels, out_channels, 1, momentum=momentum, eps=eps)
 
 
-def Truncate(inputs, channels):
+def truncate(inputs, channels):
     """Slice the inputs to channels if necessary."""
     input_channels = inputs.size()[1]
     if input_channels < channels:
@@ -212,7 +205,7 @@ def Truncate(inputs, channels):
         return inputs[:, :channels, :, :]
 
 
-def ComputeVertexChannels(in_channels, out_channels, matrix):
+def compute_vertex_channels(in_channels, out_channels, matrix):
     """Computes the number of channels at every vertex.
 
     Given the input channels and output channels, this calculates the number of
@@ -221,6 +214,8 @@ def ComputeVertexChannels(in_channels, out_channels, matrix):
     channels are divided amongst the vertices that are directly connected to it.
     When the division is not even, some vertices may receive an extra channel to
     compensate.
+
+    Code from https://github.com/google-research/nasbench/
 
     Returns:
         list of channel counts, in order of the vertices.
