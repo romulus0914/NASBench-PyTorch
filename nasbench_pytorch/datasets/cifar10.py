@@ -22,13 +22,14 @@ def train_valid_split(dataset_size, valid_size, random_state=None):
 
 
 def seed_worker(seed, worker_id):
+    seed = seed if seed is not None else 0
     worker_seed = seed + worker_id
     np.random.seed(worker_seed)
     random.seed(worker_seed)
 
 
-def prepare_dataset(batch_size, test_batch_size=100, root='./data/', validation_size=0, random_state=None,
-                    set_global_seed=False, no_valid_transform=False,
+def prepare_dataset(batch_size, test_batch_size=100, root='./data/', use_validation=True, split_from_end=True,
+                    validation_size=10000, random_state=None, set_global_seed=False, no_valid_transform=True,
                     num_workers=0, num_val_workers=0, num_test_workers=0):
     """
     Download the CIFAR-10 dataset and prepare train and test DataLoaders (optionally also validation loader).
@@ -37,8 +38,9 @@ def prepare_dataset(batch_size, test_batch_size=100, root='./data/', validation_
         batch_size: Batch size for the train (and validation) loader.
         test_batch_size: Batch size for the test loader.
         root: Directory path to download the CIFAR-10 dataset to.
+        use_validation: If False, don't split off the validation set.
+        split_from_end: If True, split off `validation_size` images from the end, if False, choose images randomly.
         validation_size: Size of the validation dataset to split off the train set.
-            If  == 0, don't return the validation set.
 
         random_state: Seed for the random functions (generators from numpy and random)
         set_global_seed: If True, call np.random.seed(random_state) and random.seed(random_state). Useful when
@@ -66,7 +68,7 @@ def prepare_dataset(batch_size, test_batch_size=100, root='./data/', validation_
     if random_state is not None:
         worker_fn = partial(seed_worker, random_state)
     else:
-        worker_fn=None
+        worker_fn = None
 
     print('\n--- Preparing CIFAR10 Data ---')
 
@@ -87,10 +89,19 @@ def prepare_dataset(batch_size, test_batch_size=100, root='./data/', validation_
     valid_set = valid_set if no_valid_transform else train_set
     train_size = len(train_set)
 
-    # split off random validation set
-    if validation_size > 0:
-        train_sampler, valid_sampler = train_valid_split(train_size, validation_size, random_state=random_state)
-        train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=False,
+    if use_validation:
+        if split_from_end:
+            # get last n images
+            indices = np.arange(len(train_set))
+            train_set = torch.utils.data.Subset(train_set, indices[:-validation_size])
+            valid_set = torch.utils.data.Subset(valid_set, indices[-validation_size:])
+            train_sampler, valid_sampler = None, None
+        else:
+            # split off random validation set
+            train_sampler, valid_sampler = train_valid_split(train_size, validation_size, random_state=random_state)
+
+        # shuffle is True if split_from_end otherwise False
+        train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=split_from_end,
                                                    sampler=train_sampler, num_workers=num_workers,
                                                    worker_init_fn=worker_fn)
         valid_loader = torch.utils.data.DataLoader(valid_set, batch_size=batch_size, shuffle=False,

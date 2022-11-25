@@ -52,7 +52,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', default=128, type=int, help='batch size')
     parser.add_argument('--test_batch_size', default=100, type=int, help='test set batch size')
     parser.add_argument('--epochs', default=100, type=int, help='#epochs of training')
-    parser.add_argument('--validation_size', default=0, type=int, help="Size of the validation set to split off.")
+    parser.add_argument('--validation_size', default=10000, type=int, help="Size of the validation set to split off.")
     parser.add_argument('--num_workers', default=0, type=int, help="Number of parallel workers for the train dataset.")
     parser.add_argument('--learning_rate', default=0.025, type=float, help='base learning rate')
     parser.add_argument('--lr_decay_method', default='COSINE_BY_STEP', type=str, help='learning decay method')
