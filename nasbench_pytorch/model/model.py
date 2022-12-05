@@ -21,11 +21,12 @@ from nasbench_pytorch.model.model_spec import ModelSpec
 
 import torch
 import torch.nn as nn
+from torch.nn.init import _calculate_fan_in_and_fan_out
 
 
 class Network(nn.Module):
-    def __init__(self, spec, num_labels=10,
-                 in_channels=3, stem_out_channels=128, num_stacks=3, num_modules_per_stack=3, momentum=0.1, eps=1e-5):
+    def __init__(self, spec, num_labels=10, in_channels=3, stem_out_channels=128, num_stacks=3, num_modules_per_stack=3,
+                 momentum=0.997, eps=1e-5, tf_like=False):
         """
 
         Args:
@@ -45,6 +46,7 @@ class Network(nn.Module):
 
         self.cell_indices = set()
 
+        self.tf_like = tf_like
         self.layers = nn.ModuleList([])
 
         # initial stem convolution
@@ -84,21 +86,31 @@ class Network(nn.Module):
     def _initialize_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2.0 / n))
+                if self.tf_like:
+                    fan_in, _ = _calculate_fan_in_and_fan_out(m.weight)
+                    torch.nn.init.normal_(m.weight, mean=0, std=1.0 / torch.sqrt(torch.tensor(fan_in)))
+                else:
+                    n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                    m.weight.data.normal_(0, math.sqrt(2.0 / n))
+
                 if m.bias is not None:
                     m.bias.data.zero_()
+
             elif isinstance(m, nn.BatchNorm2d):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
             elif isinstance(m, nn.Linear):
-                m.weight.data.normal_(0, 0.01)
+                if self.tf_like:
+                    torch.nn.init.xavier_uniform_(m.weight)
+                else:
+                    m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
+
 
 class Cell(nn.Module):
     """
     Builds the model using the adjacency matrix and op labels specified. Channels
-    controls the module output channel count but the interior channels are
+    control the module output channel count but the interior channels are
     determined via equally splitting the channel count whenever there is a
     concatenation of Tensors.
     """
@@ -111,7 +123,7 @@ class Cell(nn.Module):
         self.num_vertices = np.shape(self.matrix)[0]
 
         # vertex_channels[i] = number of output channels of vertex i
-        self.vertex_channels = ComputeVertexChannels(in_channels, out_channels, self.matrix)
+        self.vertex_channels = compute_vertex_channels(in_channels, out_channels, self.matrix)
         #self.vertex_channels = [in_channels] + [out_channels] * (self.num_vertices - 1)
 
         # operation for each node
@@ -124,11 +136,11 @@ class Cell(nn.Module):
         self.input_op = nn.ModuleList([Placeholder()])
         for t in range(1, self.num_vertices):
             if self.matrix[0, t]:
-                self.input_op.append(Projection(in_channels, self.vertex_channels[t], momentum=momentum, eps=eps))
+                self.input_op.append(projection(in_channels, self.vertex_channels[t], momentum=momentum, eps=eps))
             else:
                 self.input_op.append(Placeholder())
 
-        self.last_inop : Projection = self.input_op[self.num_vertices-1]
+        self.last_inop : projection = self.input_op[self.num_vertices - 1]
 
     def forward(self, x):
         tensors = [x]
@@ -141,20 +153,17 @@ class Cell(nn.Module):
                 fan_in = []
                 for src in range(1, t):
                     if self.matrix[src, t]:
-                        fan_in.append(Truncate(tensors[src], torch.tensor(self.vertex_channels[t])))
+                        fan_in.append(truncate(tensors[src], torch.tensor(self.vertex_channels[t])))
 
                 if self.matrix[0, t]:
                     l = inmod(x)
                     fan_in.append(l)
 
                 # perform operation on node
-                #vertex_input = torch.stack(fan_in, dim=0).sum(dim=0)
                 vertex_input = torch.zeros_like(fan_in[0]).to(self.dev_param.device)
-                
                 for val in fan_in:
                     vertex_input += val
-                #vertex_input = sum(fan_in)
-                #vertex_input = sum(fan_in) / len(fan_in)
+
                 vertex_output = outmod(vertex_input)
 
                 tensors.append(vertex_output)
@@ -173,19 +182,15 @@ class Cell(nn.Module):
             if self.matrix[0, self.num_vertices-1]:
                 outputs = outputs + self.last_inop(tensors[0])
 
-            #if self.matrix[0, self.num_vertices-1]:
-            #    out_concat.append(self.input_op[self.num_vertices-1](tensors[0]))
-            #outputs = sum(out_concat) / len(out_concat)
-
         return outputs
 
 
-def Projection(in_channels, out_channels, momentum=0.1, eps=1e-5):
+def projection(in_channels, out_channels, momentum=0.1, eps=1e-5):
     """1x1 projection (as in ResNet) followed by batch normalization and ReLU."""
     return ConvBnRelu(in_channels, out_channels, 1, momentum=momentum, eps=eps)
 
 
-def Truncate(inputs, channels):
+def truncate(inputs, channels):
     """Slice the inputs to channels if necessary."""
     input_channels = inputs.size()[1]
     if input_channels < channels:
@@ -200,7 +205,7 @@ def Truncate(inputs, channels):
         return inputs[:, :channels, :, :]
 
 
-def ComputeVertexChannels(in_channels, out_channels, matrix):
+def compute_vertex_channels(in_channels, out_channels, matrix):
     """Computes the number of channels at every vertex.
 
     Given the input channels and output channels, this calculates the number of
@@ -209,6 +214,8 @@ def ComputeVertexChannels(in_channels, out_channels, matrix):
     channels are divided amongst the vertices that are directly connected to it.
     When the division is not even, some vertices may receive an extra channel to
     compensate.
+
+    Code from https://github.com/google-research/nasbench/
 
     Returns:
         list of channel counts, in order of the vertices.

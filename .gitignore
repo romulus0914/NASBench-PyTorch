@@ -11,6 +11,8 @@ checkpoint/*
 dist/*
 build/*
 
+*.ipynb
+
 **/__pycache__/**
 
 *.egg-info/*

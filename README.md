@@ -5,6 +5,9 @@ implementation is written in TensorFlow, and this projects contains
 some files from the original repository (in the directory
 `nasbench_pytorch/model/`).
 
+**Important:** if you want to reproduce the original results, please refer to the
+[Reproducibility](#repro) section.
+
 # Overview
 A PyTorch implementation of *training* of NAS-Bench-101 dataset: [NAS-Bench-101: Towards Reproducible Neural Architecture Search](https://arxiv.org/abs/1902.09635).
 The dataset contains 423,624 unique neural networks exhaustively generated and evaluated from a fixed graph-based search space.
@@ -63,6 +66,25 @@ Then, you can train it just like the example network in `main.py`.
 # Architecture
 Example architecture (picture from the original repository)
 ![archtecture](./assets/architecture.png)
+
+# Reproducibility <a id="repro"></a>
+The code should closely match the TensorFlow version (including the hyperparameters), but there are some differences:
+- RMSProp implementation in TensorFlow and PyTorch is **different**
+  - For more information refer to [here](https://github.com/pytorch/pytorch/issues/32545) and [here](https://github.com/pytorch/pytorch/issues/23796).
+  - Optionally, you can install pytorch-image-models where a [TensorFlow-like RMSProp](https://github.com/rwightman/pytorch-image-models/blob/main/timm/optim/rmsprop_tf.py#L5) is implemented
+    - `pip install timm`
+  - Then, pass `--optimizer rmsprop_tf` to `main.py` to use it
+
+
+- You can turn gradient clipping off by setting `--grad_clip_off True`
+
+
+- The original training was on TPUs, this code enables only GPU and CPU training
+- Input data augmentation methods are the same, but due to randomness they are not applied in the same manner
+  - Cause: Batches and images cannot be shuffled as in the original TPU training, and the augmentation seed is also different
+- Results may still differ due to TensorFlow/PyTorch implementation differences
+
+Refer to this [issue](https://github.com/romulus0914/NASBench-PyTorch/issues/6) for more information and for comparison with API results.
 
 # Disclaimer
 Modified from [NASBench: A Neural Architecture Search Dataset and Benchmark](https://github.com/google-research/nasbench).
