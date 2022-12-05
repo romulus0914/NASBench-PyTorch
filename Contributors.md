@@ -6,6 +6,7 @@
   - Package structure, reproducibility
 ---------
 - [@abhash-er](https://github.com/abhash-er/) (Abhash Jha)
-  - modified the model code so that cast to double is possible
+  - Modified the model code so that cast to double is possible
 - [@longerHost](https://github.com/longerHost)
-  - reproducibility of the original NAS-Bench-101 results
+  - Reproducibility of the original NAS-Bench-101
+  - Comparison of training results and API results

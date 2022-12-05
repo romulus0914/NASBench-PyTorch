@@ -74,7 +74,8 @@ def train(net, train_loader, loss=None, optimizer=None, scheduler=None, grad_cli
             optimizer.zero_grad()
             curr_loss = loss(outputs, targets)
             curr_loss.backward()
-            nn.utils.clip_grad_norm_(net.parameters(), grad_clip)
+            if grad_clip is not None:
+                nn.utils.clip_grad_norm_(net.parameters(), grad_clip)
             optimizer.step()
 
             # metrics

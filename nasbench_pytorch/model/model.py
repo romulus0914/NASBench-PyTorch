@@ -26,7 +26,7 @@ from torch.nn.init import _calculate_fan_in_and_fan_out
 
 class Network(nn.Module):
     def __init__(self, spec, num_labels=10, in_channels=3, stem_out_channels=128, num_stacks=3, num_modules_per_stack=3,
-                 momentum=0.1, eps=1e-5, tf_like=False):
+                 momentum=0.997, eps=1e-5, tf_like=False):
         """
 
         Args:

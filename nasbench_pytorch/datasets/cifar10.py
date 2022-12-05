@@ -28,7 +28,7 @@ def seed_worker(seed, worker_id):
     random.seed(worker_seed)
 
 
-def prepare_dataset(batch_size, test_batch_size=100, root='./data/', use_validation=True, split_from_end=True,
+def prepare_dataset(batch_size, test_batch_size=256, root='./data/', use_validation=True, split_from_end=True,
                     validation_size=10000, random_state=None, set_global_seed=False, no_valid_transform=True,
                     num_workers=0, num_val_workers=0, num_test_workers=0):
     """

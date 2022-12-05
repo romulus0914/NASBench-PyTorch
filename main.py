@@ -41,27 +41,24 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='NASBench')
     parser.add_argument('--random_state', default=1, type=int, help='Random seed.')
     parser.add_argument('--data_root', default='./data/', type=str, help='Path where cifar will be downloaded.')
-    parser.add_argument('--module_vertices', default=7, type=int, help='#vertices in graph')
-    parser.add_argument('--max_edges', default=9, type=int, help='max edges in graph')
-    parser.add_argument('--available_ops', default=['conv3x3-bn-relu', 'conv1x1-bn-relu', 'maxpool3x3'],
-                        type=list, help='available operations performed on vertex')
     parser.add_argument('--in_channels', default=3, type=int, help='Number of input channels.')
     parser.add_argument('--stem_out_channels', default=128, type=int, help='output channels of stem convolution')
     parser.add_argument('--num_stacks', default=3, type=int, help='#stacks of modules')
     parser.add_argument('--num_modules_per_stack', default=3, type=int, help='#modules per stack')
-    parser.add_argument('--batch_size', default=128, type=int, help='batch size')
-    parser.add_argument('--test_batch_size', default=100, type=int, help='test set batch size')
-    parser.add_argument('--epochs', default=100, type=int, help='#epochs of training')
+    parser.add_argument('--batch_size', default=256, type=int, help='batch size')
+    parser.add_argument('--test_batch_size', default=256, type=int, help='test set batch size')
+    parser.add_argument('--epochs', default=108, type=int, help='#epochs of training')
     parser.add_argument('--validation_size', default=10000, type=int, help="Size of the validation set to split off.")
     parser.add_argument('--num_workers', default=0, type=int, help="Number of parallel workers for the train dataset.")
-    parser.add_argument('--learning_rate', default=0.025, type=float, help='base learning rate')
+    parser.add_argument('--learning_rate', default=0.02, type=float, help='base learning rate')
     parser.add_argument('--lr_decay_method', default='COSINE_BY_STEP', type=str, help='learning decay method')
-    parser.add_argument('--optimizer', default='sgd', type=str, help='Optimizer (sgd or rmsprop)')
-    parser.add_argument('--rmsprop_eps', default=1e-08, type=float, help='RMSProp eps parameter.')
+    parser.add_argument('--optimizer', default='rmsprop', type=str, help='Optimizer (sgd, rmsprop or rmsprop_tf)')
+    parser.add_argument('--rmsprop_eps', default=1.0, type=float, help='RMSProp eps parameter.')
     parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
     parser.add_argument('--weight_decay', default=1e-4, type=float, help='L2 regularization weight')   
     parser.add_argument('--grad_clip', default=5, type=float, help='gradient clipping')
-    parser.add_argument('--batch_norm_momentum', default=0.1, type=float, help='Batch normalization momentum')
+    parser.add_argument('--grad_clip_off', default=False, type=bool, help='If True, turn off gradient clipping.')
+    parser.add_argument('--batch_norm_momentum', default=0.997, type=float, help='Batch normalization momentum')
     parser.add_argument('--batch_norm_eps', default=1e-5, type=float, help='Batch normalization epsilon')
     parser.add_argument('--load_checkpoint', default='', type=str, help='Reload model from checkpoint')
     parser.add_argument('--num_labels', default=10, type=int, help='#classes')
@@ -110,7 +107,8 @@ if __name__ == '__main__':
                           weight_decay=args.weight_decay, **optimizer_kwargs)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, args.epochs)
 
-    result = train(net, train_loader, loss=criterion, optimizer=optimizer, scheduler=scheduler, grad_clip=args.grad_clip,
+    result = train(net, train_loader, loss=criterion, optimizer=optimizer, scheduler=scheduler,
+                   grad_clip=args.grad_clip if not args.grad_clip_off else None,
                    num_epochs=args.epochs, num_validation=args.validation_size, validation_loader=valid_loader,
                    device=args.device, print_frequency=args.print_freq)
 
