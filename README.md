@@ -76,6 +76,9 @@ The code should closely match the TensorFlow version (including the hyperparamet
   - Then, pass `--optimizer rmsprop_tf` to `main.py` to use it
 
 
+- You can turn gradient clipping off by setting `--grad_clip_off True`
+
+
 - The original training was on TPUs, this code enables only GPU and CPU training
 - Input data augmentation methods are the same, but due to randomness they are not applied in the same manner
   - Cause: Batches and images cannot be shuffled as in the original TPU training, and the augmentation seed is also different
