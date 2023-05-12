@@ -109,7 +109,7 @@ def prepare_dataset(batch_size, test_batch_size=256, root='./data/', use_validat
                                                    worker_init_fn=worker_fn)
     else:
         train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True,
-                                                   worker_init_fn=worker_fn)
+                                                   num_workers=num_workers, worker_init_fn=worker_fn)
         valid_loader = None
 
     test_set = torchvision.datasets.CIFAR10(root=root, train=False, download=True, transform=test_transform)
